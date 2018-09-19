@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -76,6 +77,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
   private static JsonNode jsonNode;
   private static final String query1 = "fn:count(fn:doc())";
   private static String[] hostNames;
+  private static int forestCount = 1; 
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -87,12 +89,16 @@ public class DeleteListenerTest extends BasicJavaClientREST {
     hostNames = getHosts();
     createDB(dbName);
     Thread.currentThread().sleep(500L);
-    int count = 1;
-    for (String forestHost : hostNames) {
-      createForestonHost(dbName + "-" + count, dbName, forestHost);
-      count++;
-      Thread.currentThread().sleep(500L);
-    }
+  //Ensure db has atleast one forest
+	createForestonHost(dbName + "-" + forestCount, dbName, hostNames[0]);
+	forestCount++;
+	for (String forestHost : hostNames) {
+		for(int i = 0; i < new Random().nextInt(3); i++) {
+			createForestonHost(dbName + "-" + forestCount, dbName, forestHost);
+			forestCount++;
+		}
+		Thread.currentThread().sleep(500L);
+	}
     // Create App Server if needed.
  	createRESTServerWithDB(server, port);
 
@@ -103,7 +109,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
 
     dbClient = getDatabaseClient(user, password, Authentication.DIGEST);
     DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
-    dmManager = dbClient.newDataMovementManager();
+    dmManager = dbClient.newDataMovementManager(getPolicy());
 
     clusterInfo = ((DatabaseClientImpl) adminClient).getServices()
             .getResource(null, "internal/forestinfo", null, null, new JacksonHandle()).get();
@@ -129,7 +135,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
     associateRESTServerWithDB(server, "Documents");
-    for (int i = 0; i < hostNames.length; i++) {
+    for (int i = 0; i < forestCount; i++) {
       System.out.println(dbName + "-" + (i + 1));
       detachForest(dbName, dbName + "-" + (i + 1));
       deleteForest(dbName + "-" + (i + 1));
@@ -176,8 +182,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
     Assert.assertTrue(uriSet.isEmpty());
     Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 2000);
 
-    QueryBatcher queryBatcher = dmManager.newQueryBatcher(
-        new StructuredQueryBuilder().collection("DeleteListener"))
+    QueryBatcher queryBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("DeleteListener"))
         .withBatchSize(11)
         .withThreadCount(1)
         .onUrisReady(batch -> {

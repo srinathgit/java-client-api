@@ -22,31 +22,21 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marklogic.client.DatabaseClient;
-import com.marklogic.client.DatabaseClientFactory;
 import com.marklogic.client.DatabaseClientFactory.Authentication;
 import com.marklogic.client.admin.ExtensionMetadata;
 import com.marklogic.client.admin.TransformExtensionsManager;
@@ -63,7 +53,6 @@ import com.marklogic.client.document.DocumentPage;
 import com.marklogic.client.document.DocumentRecord;
 import com.marklogic.client.document.ServerTransform;
 import com.marklogic.client.functionaltest.BasicJavaClientREST;
-import com.marklogic.client.impl.DatabaseClientImpl;
 import com.marklogic.client.io.DOMHandle;
 import com.marklogic.client.io.DocumentMetadataHandle;
 import com.marklogic.client.io.FileHandle;
@@ -84,8 +73,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 	private static int port = 8000;
 	private static String password = "admin";
 	private static String server = "App-Services";
-	private static JsonNode clusterInfo;
-
+	
 	private static JacksonHandle jacksonHandle;
 	private static JacksonHandle jacksonHandle1;
 	private static StringHandle stringHandle;
@@ -104,6 +92,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 	private static JsonNode jsonNode1;
 	private static final String query1 = "fn:count(fn:doc())";
 	private static String[] hostNames;
+	private static int forestCount = 1;
 
 	/**
 	 * @throws Exception
@@ -118,10 +107,14 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		hostNames = getHosts();
 		createDB(dbName);
 		Thread.currentThread().sleep(500L);
-		int count = 1;
+		//Ensure db has atleast one forest
+		createForestonHost(dbName + "-" + forestCount, dbName, hostNames[0]);
+		forestCount++;
 		for (String forestHost : hostNames) {
-			createForestonHost(dbName + "-" + count, dbName, forestHost);
-			count++;
+			for(int i = 0; i < new Random().nextInt(3); i++) {
+				createForestonHost(dbName + "-" + forestCount, dbName, forestHost);
+				forestCount++;
+			}
 			Thread.currentThread().sleep(500L);
 		}
 		// Create App Server if needed.
@@ -132,11 +125,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		}
 
 		dbClient = getDatabaseClient(user, password, Authentication.DIGEST);
-        DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
-		dmManager = dbClient.newDataMovementManager();
-
-		clusterInfo = ((DatabaseClientImpl) adminClient).getServices()
-				.getResource(null, "internal/forestinfo", null, null, new JacksonHandle()).get();
+       	dmManager = dbClient.newDataMovementManager(getPolicy());
 
 		// FileHandle
 		fileJson = FileUtils.toFile(WriteHostBatcherTest.class.getResource(TEST_DIR_PREFIX + "dir.json"));
@@ -204,7 +193,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 			String uri = "/local/string-" + j;
 			ihb2.add(uri, meta2, stringHandle);
 		}
-
+		ihb2.flushAndWait();
 		ihb2.flushAndWait();
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 4000);
 
@@ -239,22 +228,12 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		associateRESTServerWithDB(server, "Documents");
-		for (int i = 0; i < hostNames.length; i++) {
+		for (int i = 0; i < forestCount; i++) {
 			detachForest(dbName, dbName + "-" + (i + 1));
 			deleteForest(dbName + "-" + (i + 1));
 		}
 
 		deleteDB(dbName);
-	}
-
-	@Before
-	public void setUp() throws Exception {
-
-	}
-
-	@After
-	public void tearDown() throws Exception {
-
 	}
 
 	@Test
@@ -277,31 +256,35 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 				});
 
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
-				.onUrisReady(listener);
+		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"));
+		batcher.onQueryFailure(new CustomHostAvailabilityListener(dmManager));				
+		batcher.onUrisReady(listener);
+		
 		JobTicket ticket = dmManager.startJob(batcher);
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
 		dmManager.stopJob(ticket);
+		
+		AtomicInteger count = new AtomicInteger(0);
+		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
+				.withBatchSize(25).withThreadCount(5)
+				.onUrisReady((batch)->{
+					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
+					DOMHandle dh = new DOMHandle();
+					while (page.hasNext()) {
+						DocumentRecord rec = page.next();
+						rec.getContent(dh);
+						if(dh.get().getElementsByTagName("foo").item(0).getAttributes().item(0).getNodeValue().equals("English"));
+							count.incrementAndGet();
 
-		String uris[] = new String[2000];
-		for (int i = 0; i < 2000; i++) {
-			uris[i] = "/local/string-" + i;
-		}
-		int count = 0;
-		DocumentPage page = dbClient.newDocumentManager().read(uris);
-		DOMHandle dh = new DOMHandle();
-		while (page.hasNext()) {
-			DocumentRecord rec = page.next();
-			rec.getContent(dh);
-			assertTrue("Element has attribure ? :", dh.get().getElementsByTagName("foo").item(0).hasAttributes());
-			assertEquals("Attribute value should be English", "English",
-					dh.get().getElementsByTagName("foo").item(0).getAttributes().item(0).getNodeValue());
-			count++;
-		}
-
-		assertEquals("document count", 2000, count);
+					}
+					
+				});
+		dmManager.startJob(resultBatcher);				
+		resultBatcher.awaitCompletion();
+		assertEquals("document count", 2000, count.get());
 		assertEquals("document count", 2000, success.intValue());
 		assertEquals("document count", 0, skipped.intValue());
+
 	}
 
 	@Test
@@ -363,22 +346,24 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		JobTicket ticket = dmManager.startJob(batcher);
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
 		dmManager.stopJob(ticket);
-
-		String uris[] = new String[2000];
-		for (int i = 0; i < 2000; i++) {
-			uris[i] = "/local/json-" + i;
-		}
-		int count = 0;
-		DocumentPage page = dbClient.newDocumentManager().read(uris);
-		JacksonHandle dh = new JacksonHandle();
-		while (page.hasNext()) {
-			DocumentRecord rec = page.next();
-			rec.getContent(dh);
-			assertEquals("Attribute value should be new Value", "new Value", dh.get().get("c").asText());
-			count++;
-		}
-
-		assertEquals("document count", 2000, count);
+		
+		AtomicInteger count = new AtomicInteger(0);
+		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("JsonTransform"))
+				.withBatchSize(25).withThreadCount(5)
+				.onUrisReady((batch)->{
+					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
+					JacksonHandle dh = new JacksonHandle();
+					while (page.hasNext()) {
+						DocumentRecord rec = page.next();
+						rec.getContent(dh);
+						if(dh.get().get("c").asText().equals("new Value"))
+							count.incrementAndGet();
+					}
+					
+				});
+		dmManager.startJob(resultBatcher);				
+		resultBatcher.awaitCompletion();
+		assertEquals("document count", 2000, count.get());
 	}
 
 	@Test
@@ -638,8 +623,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		Set<String> urisList = Collections.synchronizedSet(new HashSet<String>());
 
 		assertTrue(urisList.isEmpty());
-		QueryBatcher queryBatcher = dmManager
-				.newQueryBatcher(new StructuredQueryBuilder().collection("Replace Snapshot")).withBatchSize(11)
+		QueryBatcher queryBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Replace Snapshot"))
+				.withBatchSize(11)
 				.onUrisReady(batch -> {
 					urisList.addAll(Arrays.asList(batch.getItems()));
 				}).onQueryFailure(throwable -> {
@@ -722,34 +707,38 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		JobTicket ticket = dmManager.startJob(batcher);
 		Thread.currentThread().sleep(4000L);
 		dmManager.stopJob(ticket);
-		batcher.awaitCompletion();
+		batcher.awaitCompletion();	
+		
+		AtomicInteger count = new AtomicInteger(0);
+		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Skipped"))
+				.withBatchSize(25).withThreadCount(5)
+				.onUrisReady((batch)->{
+					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
+					DOMHandle dh = new DOMHandle();
+					while (page.hasNext()) {
+						DocumentRecord rec = page.next();
+						rec.getContent(dh);
+						if (dh.get().getElementsByTagName("foo").item(0).getAttributes().item(0) == null) {
+							count.incrementAndGet();
+						}
 
-		String uris[] = new String[2000];
-		for (int i = 0; i < 2000; i++) {
-			uris[i] = "/local/skipped-" + i;
-		}
-		int count = 0;
-		DocumentPage page = dbClient.newDocumentManager().read(uris);
-		DOMHandle dh = new DOMHandle();
-		while (page.hasNext()) {
-			DocumentRecord rec = page.next();
-			rec.getContent(dh);
-			if (dh.get().getElementsByTagName("foo").item(0).getAttributes().item(0) == null) {
-				count++;
-			}
+					}
+					
+				});
+		dmManager.startJob(resultBatcher);				
+		resultBatcher.awaitCompletion();
 
-		}
 		System.out.println("stopTransformJobTest: Success: " + successBatch.size());
 		System.out.println("stopTransformJobTest: Skipped: " + skippedBatch.size());
 		System.out.println("stopTransformJobTest : count " + count);
-		Assert.assertEquals(2000, successBatch.size() + skippedBatch.size() + count);
-		Assert.assertEquals(2000 - count, successBatch.size());
+		Assert.assertEquals(2000, successBatch.size() + skippedBatch.size() + count.get());
+		Assert.assertEquals(2000 - count.get(), successBatch.size());
 
 	}
 
 	@Test
 	public void jsMasstransformReplaceFiltered() throws Exception {
-
+		Assume.assumeFalse(isLBHost());
 		ServerTransform transform = new ServerTransform("jsTransform");
 		transform.put("newValue", "new Value");
 

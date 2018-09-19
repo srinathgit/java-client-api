@@ -66,6 +66,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.marklogic.client.DatabaseClient;
+import com.marklogic.client.DatabaseClient.ConnectionPolicy;
 import com.marklogic.client.DatabaseClientFactory;
 import com.marklogic.client.DatabaseClientFactory.Authentication;
 import com.marklogic.client.DatabaseClientFactory.SSLHostnameVerifier;
@@ -102,6 +103,7 @@ public abstract class ConnectedRESTQA {
 	private static String ml_certificate_file = null;
 	private static String ml_certificate_path = null;
 	private static String mlDataConfigDirPath = null;
+	private static Boolean isLBHost = false;
 
 	SSLContext sslContext = null;
 
@@ -2518,8 +2520,16 @@ public abstract class ConnectedRESTQA {
 		ml_certificate_file = property.getProperty("ml_certificate_file");
 		ml_certificate_path = property.getProperty("ml_certificate_path");
 		mlDataConfigDirPath = property.getProperty("mlDataConfigDirPath");
+		isLBHost = Boolean.parseBoolean(property.getProperty("lbHost"));
+	}
+	
+	public static boolean isLBHost() {
+		return isLBHost;
 	}
 
+	public static DatabaseClient.ConnectionPolicy getPolicy(){
+		return (isLBHost==true)?ConnectionPolicy.PRIMARY_HOST:ConnectionPolicy.FOREST_HOSTS;
+	}
 	public static String getAdminUser() {
 		return admin_user;
 	}

@@ -64,7 +64,6 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 	private static DocumentMetadataHandle docMeta2;
 
 	private static WriteBatcher ihbMT;
-	private static JsonNode clusterInfo;
 	private static String[] hostNames;
 
 	private static String stringTriple;
@@ -101,10 +100,7 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 
 		dbClient = getDatabaseClient(user, password, Authentication.DIGEST);
 		DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
-		dmManager = dbClient.newDataMovementManager();
-
-		clusterInfo = ((DatabaseClientImpl) adminClient).getServices()
-				.getResource(null, "internal/forestinfo", null, null, new JacksonHandle()).get();
+		dmManager = dbClient.newDataMovementManager(getPolicy());
 
 		// JacksonHandle
 		jsonNode = new ObjectMapper().readTree("{\"k1\":\"v1\"}");
