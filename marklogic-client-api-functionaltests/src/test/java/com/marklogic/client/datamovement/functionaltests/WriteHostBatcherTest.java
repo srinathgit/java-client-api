@@ -222,7 +222,6 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 				.path("status-properties");
 		props.clear();
 		String s = output.findValue("enabled").get("value").asText();
-		System.out.println("S is " + s);
 		if (s.trim().equals("false")) {
 			props.put("server-name", server);
 			props.put("group-name", "Default");

@@ -215,7 +215,8 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
 		dmManager.stopJob(queryTicket);
 
-		batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform")).withBatchSize(500)
+		batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
+				.withBatchSize(500)
 				.withThreadCount(20);
 		batcher.onUrisReady(batch -> {
 			if (dmManager.getJobReport(queryTicket).getSuccessEventsCount() == successCount
@@ -229,7 +230,8 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
 		dmManager.stopJob(queryTicket);
 
-		batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform")).withBatchSize(500)
+		batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
+				.withBatchSize(500)
 				.withThreadCount(20);
 		batcher.onUrisReady(batch -> {
 			if (Math.abs(dmManager.getJobReport(queryTicket).getReportTimestamp().getTime().getTime()
@@ -482,7 +484,8 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 		dmManager.stopJob(queryTicket);
 
 		AtomicInteger doccount = new AtomicInteger(0);
-		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("JsonTransform"))
+		QueryBatcher resultBatcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("JsonTransform"))
 				.withBatchSize(25).withThreadCount(5)
 				.onUrisReady((batch)->{
 					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
@@ -547,7 +550,8 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 		dmManager.stopJob(queryTicket);
 		
 		AtomicInteger count = new AtomicInteger(0);
-		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
+		QueryBatcher resultBatcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
 				.withBatchSize(25).withThreadCount(5)
 				.onUrisReady((batch)->{
 					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
@@ -559,7 +563,6 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 							count.incrementAndGet();
 							System.out.println("stopTransformJobTest: skipped in server" + rec.getUri());
 						}
-
 					}
 					
 				});

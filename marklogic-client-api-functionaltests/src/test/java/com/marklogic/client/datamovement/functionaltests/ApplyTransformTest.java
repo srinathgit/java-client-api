@@ -194,7 +194,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 			ihb2.add(uri, meta2, stringHandle);
 		}
 		ihb2.flushAndWait();
-		ihb2.flushAndWait();
+		
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 4000);
 
 		ihb2.add("/local/quality", meta3, jacksonHandle);
@@ -256,7 +256,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 				});
 
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"));
+		QueryBatcher batcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"));
 		batcher.onQueryFailure(new CustomHostAvailabilityListener(dmManager));				
 		batcher.onUrisReady(listener);
 		
@@ -265,7 +266,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		dmManager.stopJob(ticket);
 		
 		AtomicInteger count = new AtomicInteger(0);
-		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
+		QueryBatcher resultBatcher = 
+				dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
 				.withBatchSize(25).withThreadCount(5)
 				.onUrisReady((batch)->{
 					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
@@ -273,11 +275,10 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 					while (page.hasNext()) {
 						DocumentRecord rec = page.next();
 						rec.getContent(dh);
-						if(dh.get().getElementsByTagName("foo").item(0).getAttributes().item(0).getNodeValue().equals("English"));
+						if(dh.get().getElementsByTagName("foo").item(0).getAttributes()
+								.item(0).getNodeValue().equals("English"));
 							count.incrementAndGet();
-
-					}
-					
+					}					
 				});
 		dmManager.startJob(resultBatcher);				
 		resultBatcher.awaitCompletion();
@@ -311,7 +312,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		Set<String> urisList = new HashSet<>();
 		urisList.add("/local/nonexistent");
 		urisList.add("/local/nonexistent-1");
-		QueryBatcher batcher = dmManager.newQueryBatcher(urisList.iterator()).withBatchSize(2).onUrisReady(listener);
+		QueryBatcher batcher = 
+				dmManager.newQueryBatcher(urisList.iterator()).withBatchSize(2).onUrisReady(listener);
 		JobTicket ticket = dmManager.startJob(batcher);
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
 		dmManager.stopJob(ticket);
@@ -326,7 +328,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		while (page.hasNext()) {
 			DocumentRecord rec = page.next();
 			rec.getContent(dh);
-			assertTrue("Element has attribure ? :", dh.get().getElementsByTagName("foo").item(0).hasAttributes());
+			assertTrue("Element has attribure ? :", dh.get()
+					.getElementsByTagName("foo").item(0).hasAttributes());
 			assertEquals("Attribute value should be English", "English",
 					dh.get().getElementsByTagName("foo").item(0).getAttributes().item(0).getNodeValue());
 
@@ -341,14 +344,16 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 		ApplyTransformListener listener = new ApplyTransformListener().withTransform(transform)
 				.withApplyResult(ApplyResult.REPLACE);
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("JsonTransform"))
+		QueryBatcher batcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("JsonTransform"))
 				.onUrisReady(listener);
 		JobTicket ticket = dmManager.startJob(batcher);
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
 		dmManager.stopJob(ticket);
 		
 		AtomicInteger count = new AtomicInteger(0);
-		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("JsonTransform"))
+		QueryBatcher resultBatcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("JsonTransform"))
 				.withBatchSize(25).withThreadCount(5)
 				.onUrisReady((batch)->{
 					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
@@ -374,7 +379,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 		ApplyTransformListener listener = new ApplyTransformListener().withTransform(transform)
 				.withApplyResult(ApplyResult.REPLACE);
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Single Match"))
+		QueryBatcher batcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("Single Match"))
 				.onUrisReady(listener).onUrisReady(batch -> {
 				});
 		JobTicket ticket = dmManager.startJob(batcher);
@@ -413,7 +419,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 		ApplyTransformListener listener = new ApplyTransformListener().withTransform(null);
 
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Single Match"))
+		QueryBatcher batcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("Single Match"))
 				.onUrisReady(listener).onUrisReady(batch -> {
 					System.out.println("notransformTest: URI " + batch.getItems()[0]);
 				});
@@ -455,7 +462,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		ApplyTransformListener listener = new ApplyTransformListener().withTransform(transform)
 				.withApplyResult(ApplyResult.IGNORE);
 
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Single Match"))
+		QueryBatcher batcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("Single Match"))
 				.onUrisReady(listener).onUrisReady(batch -> {
 					System.out.println("ignoreTransformTest: URI " + batch.getItems()[0]);
 					urisList.addAll(Arrays.asList(batch.getItems()));
@@ -490,7 +498,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		while (page.hasNext()) {
 			DocumentRecord rec = page.next();
 			rec.getContent(dh);
-			assertTrue("Element has no attribures:", !dh.get().getElementsByTagName("foo").item(0).hasAttributes());
+			assertTrue("Element has no attribures:", !dh.get().getElementsByTagName("foo")
+					.item(0).hasAttributes());
 		}
 		Set<String> urisList = new HashSet<>();
 
@@ -514,7 +523,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 					skippedBatch.addAll(batchList);
 				});
 
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("FailTransform"))
+		QueryBatcher batcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("FailTransform"))
 				.withBatchSize(2).onUrisReady(listener).onUrisReady(batch -> {
 
 					System.out.println(batch.getClient().getHost());
@@ -525,7 +535,11 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		properties.put("locking", "strict");
 		changeProperty(properties, "/manage/v2/databases/" + dbName + "/properties");
 
-		String insertQuery = "xdmp:document-insert(\"/local/failed\", <foo>This is so foo</foo>, (), \"FailTransform\", 0, xdmp:forest(\"ApplyTransform-1\") );xdmp:document-insert(\"/local/failed-1\", object-node {\"c\":\"v1\"}, (), \"FailTransform\", 0, xdmp:forest(\"ApplyTransform-1\") )";
+		String insertQuery = "xdmp:document-insert(\"/local/failed\", "
+				+ "<foo>This is so foo</foo>, (), \"FailTransform\", 0, xdmp:forest(\"ApplyTransform-1\") )"
+				+ ";xdmp:document-insert(\"/local/failed-1\", object-node {\"c\":\"v1\"}, (),"
+				+ " \"FailTransform\","
+				+ " 0, xdmp:forest(\"ApplyTransform-1\") )";
 
 		String response = dbClient.newServerEval().xquery(insertQuery).evalAs(String.class);
 		System.out.println(response);
@@ -539,7 +553,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		while (page.hasNext()) {
 			DocumentRecord rec = page.next();
 			rec.getContent(dh);
-			assertTrue("Element has no attribures:", !dh.get().getElementsByTagName("foo").item(0).hasAttributes());
+			assertTrue("Element has no attribures:", !dh.get().getElementsByTagName("foo").item(0)
+					.hasAttributes());
 		}
 
 		uri = new String("/local/failed-1");
@@ -603,14 +618,20 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		// Query collection "Replace Snapshot", a listener forTransform and
 		// another
 		// for Deletion are attached
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Replace Snapshot"))
-				.withBatchSize(1).onUrisReady(listener).withConsistentSnapshot().onUrisReady(new DeleteListener())
+		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder()
+				.collection("Replace Snapshot"))
+				.withBatchSize(1).onUrisReady(listener).withConsistentSnapshot()
+				.onUrisReady(new DeleteListener())
 				.onQueryFailure(throwable -> {
 					throwable.printStackTrace();
 
 				});
-		batcher.setQueryFailureListeners(new HostAvailabilityListener(dmManager)
-				.withSuspendTimeForHostUnavailable(Duration.ofSeconds(30)).withMinHosts(2));
+		HostAvailabilityListener hal = new HostAvailabilityListener(dmManager)
+		.withSuspendTimeForHostUnavailable(Duration.ofSeconds(30));
+		if(!isLBHost()) {
+			hal = hal.withMinHosts(2);
+		}
+		batcher.setQueryFailureListeners(hal);
 		JobTicket ticket = dmManager.startJob(batcher);
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
 		dmManager.stopJob(ticket);
@@ -623,7 +644,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		Set<String> urisList = Collections.synchronizedSet(new HashSet<String>());
 
 		assertTrue(urisList.isEmpty());
-		QueryBatcher queryBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Replace Snapshot"))
+		QueryBatcher queryBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder()
+				.collection("Replace Snapshot"))
 				.withBatchSize(11)
 				.onUrisReady(batch -> {
 					urisList.addAll(Arrays.asList(batch.getItems()));
@@ -702,7 +724,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 					System.out.println("stopTransformJobTest: Failed: " + batch.getItems()[0]);
 
 				});
-		QueryBatcher batcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Skipped"))
+		QueryBatcher batcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("Skipped"))
 				.onUrisReady(listener).withBatchSize(1).withThreadCount(1);
 		JobTicket ticket = dmManager.startJob(batcher);
 		Thread.currentThread().sleep(4000L);
@@ -710,7 +733,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		batcher.awaitCompletion();	
 		
 		AtomicInteger count = new AtomicInteger(0);
-		QueryBatcher resultBatcher = dmManager.newQueryBatcher(new StructuredQueryBuilder().collection("Skipped"))
+		QueryBatcher resultBatcher = dmManager
+				.newQueryBatcher(new StructuredQueryBuilder().collection("Skipped"))
 				.withBatchSize(25).withThreadCount(5)
 				.onUrisReady((batch)->{
 					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
@@ -718,7 +742,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 					while (page.hasNext()) {
 						DocumentRecord rec = page.next();
 						rec.getContent(dh);
-						if (dh.get().getElementsByTagName("foo").item(0).getAttributes().item(0) == null) {
+						if (dh.get().getElementsByTagName("foo")
+								.item(0).getAttributes().item(0) == null) {
 							count.incrementAndGet();
 						}
 
