@@ -257,9 +257,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 				});
 
 		QueryBatcher batcher = dmManager
-				.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"));
-		batcher.onQueryFailure(new CustomHostAvailabilityListener(dmManager));				
-		batcher.onUrisReady(listener);
+				.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
+				.onUrisReady(listener);
 		
 		JobTicket ticket = dmManager.startJob(batcher);
 		batcher.awaitCompletion(Long.MAX_VALUE, TimeUnit.DAYS);
