@@ -25,6 +25,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -92,9 +93,9 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 	    
 		host = getRestAppServerHostName();
 		dbClient = getDatabaseClient(user, password, getConnType());
-		DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
+		
 		dmManager = dbClient.newDataMovementManager();
-		hostNames = getHosts();
+		/*hostNames = getHosts();
 		createDB(dbName);
 		Thread.currentThread().sleep(500L);
 		int count = 1;
@@ -109,7 +110,7 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 		if (IsSecurityEnabled()) {
 			enableSecurityOnRESTServer(server, dbName);
 		}
-
+*/
 		// FileHandle
 		fileJson = FileUtils.toFile(WriteHostBatcherTest.class.getResource(TEST_DIR_PREFIX + "dir.json"));
 		fileHandle = new FileHandle(fileJson);
@@ -170,13 +171,13 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
-		associateRESTServerWithDB(server, "Documents");
+	/*	associateRESTServerWithDB(server, "Documents");
 		for (int i = 0; i < hostNames.length; i++) {
 			detachForest(dbName, dbName + "-" + (i + 1));
 			deleteForest(dbName + "-" + (i + 1));
 		}
 
-		deleteDB(dbName);
+		deleteDB(dbName);*/
 	}
 
 	@Before
@@ -186,7 +187,7 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 
 	@After
 	public void tearDown() throws Exception {
-
+		clearDB(dbClient, dbName);
 	}
 
 	@Test
@@ -288,7 +289,7 @@ public class QueryBatcherJobReportTest extends BasicJavaClientREST {
 		}
 	}
 
-	@Test
+	@Ignore
 	public void queryFailures() throws Exception {
 
 		Thread t1 = new Thread(new DisabledDBRunnable());

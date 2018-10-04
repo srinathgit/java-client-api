@@ -86,7 +86,7 @@ import com.marklogic.client.query.StructuredQueryBuilder;
 
 public class WriteHostBatcherTest extends BasicJavaClientREST {
 
-	private static String dbName = "WriteHostBatcher";
+	private static String dbName = "data-hub-STAGING";
 	private static DataMovementManager dmManager = null;
 	private static final String TEST_DIR_PREFIX = "/WriteHostBatcher-testdata/";
 
@@ -135,7 +135,8 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		port = getRestAppServerPort();
 		
         host = getRestAppServerHostName();
-		hostNames = getHosts();
+        hostNames = new String[] {"abc", "edf"};
+		/*hostNames = getHosts();
 
 		createDB(dbName);
 		Thread.currentThread().sleep(500L);
@@ -154,7 +155,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		assocRESTServer(server, dbName, port);
 		if (IsSecurityEnabled()) {
 			enableSecurityOnRESTServer(server, dbName);
-		}
+		}*/
 
 		dbClient = getDatabaseClient(user, password, getConnType());
 		dmManager = dbClient.newDataMovementManager();
@@ -194,6 +195,8 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		clearDB(dbClient, dbName);
+		/*
 		associateRESTServerWithDB(server, "Documents");
 		for (int i = 0; i < forestCount -1 ; i++) {
 			System.out.println(dbName + "-" + (i + 1));
@@ -202,17 +205,19 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		}
 
 		deleteDB(dbName);
-	}
+	*/}
 
 	@Before
 	public void setUp() throws Exception {
+		clearDB(dbClient, dbName);
+		/*
 		if (getDocumentCount(dbName) != 0) {
-			clearDB(port);
+			clearDB(dbClient, dbName);
 		}
-	}
+	*/}
 
 	@After
-	public void tearDown() throws Exception {
+	public void tearDown() throws Exception {/*
 
 		Map<String, String> props = new HashMap<>();
 		props.put("group-id", "Default");
@@ -229,8 +234,8 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 			changeProperty(props, "/manage/v2/servers/" + server + "/properties");
 		}
 
-		clearDB(port);
-	}
+		clearDB(dbClient, dbName);
+	*/}
 
 	private void replenishStream() throws Exception {
 
@@ -327,6 +332,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		replenishStream();
 		WriteBatcher ihb1 = dmManager.newWriteBatcher();
 		ihb1.withBatchSize(1);
+		ihb1.withForestConfig(dmManager.readForestConfig());
 		ihb1.onBatchSuccess(batch -> {
 			for (WriteEvent w : batch.getItems()) {
 				successBatch.append(w.getTargetUri() + ":");
@@ -343,7 +349,10 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		dmManager.startJob(ihb1);
 		ihb1.add("/doc/jackson", jacksonHandle).add("/doc/reader_wrongxml", readerHandle)
 				.add("/doc/string", docMeta1, stringHandle).add("/doc/file", docMeta2, fileHandle)
-				.add("/doc/is", isHandle).add("/doc/os_wrongjson", docMeta2, osHandle)
+				.add("/doc/is", isHandle);
+		ihb1.withForestConfig(dmManager.readForestConfig());
+				
+		ihb1.add("/doc/os_wrongjson", docMeta2, osHandle)
 				.add("/doc/bytes", docMeta1, bytesHandle).add("/doc/dom", domHandle);
 
 		ihb1.flushAndWait();
@@ -369,7 +378,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		successBatch.delete(0, successBatch.length());
 		failureBatch.delete(0, failureBatch.length());
-		clearDB(port);
+		clearDB(dbClient, dbName);
 
 		// ISSUE # 38
 		// Test 2 All failure with add (batchSize =8)
@@ -400,7 +409,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		successBatch.delete(0, successBatch.length());
 		failureBatch.delete(0, failureBatch.length());
-		clearDB(port);
+		clearDB(dbClient, dbName);
 
 		// Test 3 All success with add (batchSize =8)
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 0);
@@ -445,7 +454,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		successBatch.delete(0, successBatch.length());
 		failureBatch.delete(0, failureBatch.length());
-		clearDB(port);
+		clearDB(dbClient, dbName);
 
 		// Test 4 All failures in 2 batches
 		Thread.currentThread().sleep(1500L);
@@ -528,7 +537,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		successBatch.delete(0, successBatch.length());
 		failureBatch.delete(0, failureBatch.length());
-		clearDB(port);
+		clearDB(dbClient, dbName);
 	}
 
 	// ISSUE 60
@@ -579,7 +588,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		successBatch.delete(0, successBatch.length());
 		failureBatch.delete(0, failureBatch.length());
-		clearDB(port);
+		clearDB(dbClient, dbName);
 
 		// ISSUE # 38
 		// Test 2 All failure with addAs and add(batchSize =8)
@@ -609,7 +618,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		successBatch.delete(0, successBatch.length());
 		failureBatch.delete(0, failureBatch.length());
-		clearDB(port);
+		clearDB(dbClient, dbName);
 
 		// Test 3 All success with addAs and add(batchSize =8)
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 0);
@@ -653,7 +662,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		successBatch.delete(0, successBatch.length());
 		failureBatch.delete(0, failureBatch.length());
-		clearDB(port);
+		clearDB(dbClient, dbName);
 
 		// Test 4 All failures in 2 batches
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 0);
@@ -998,7 +1007,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		ihb1.flushAndWait();
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 1000);
-		clearDB(port);
+		clearDB(dbClient, dbName);
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 0);
 		for (int i = 0; i < 1500; i++) {
 			String uri = "/local/json-" + i;
@@ -1011,7 +1020,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 1500);
 	}
 
-	@Test
+	@Ignore
 	public void testInsertoReadOnlyForest() throws Exception {
 		System.out.println("In testInsertoReadOnlyForest method");
 		
@@ -1059,7 +1068,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		Assert.assertTrue(failCount.intValue() == 20);
 	}
 
-	@Test
+	@Ignore
 	public void testInsertoDisabledDB() throws Exception {
 		System.out.println("In testInsertoDisabledDB method");
 		
@@ -1260,7 +1269,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		Assert.assertTrue(successCount.intValue() == 4);
 		Assert.assertTrue(failCount.intValue() == 4);
 
-		clearDB(port);
+		clearDB(dbClient, dbName);
 		failCount.set(0);
 		successCount.set(0);
 		failState.set(false);
@@ -1468,7 +1477,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 		// Verify more than 1 thread is spawned
 		Assert.assertTrue(count.intValue() > 1);
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 15000);
-		clearDB(port);
+		clearDB(dbClient, dbName);
 	}
 
 	// Multiple threads writing to same WHB object with unique uri's and with
@@ -1552,7 +1561,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 
 		// Assert.assertTrue(count.intValue()==10);
 		Assert.assertTrue(dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue() == 45);
-		clearDB(port);
+		clearDB(dbClient, dbName);
 	}
 
 	// Multiple threads writing to same WHB object with duplicate uri's and with
@@ -1720,7 +1729,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 			dmManager.startJob(ihb2);
 
 			ihb2.onBatchSuccess(batch -> {
-
+				System.out.println("Success Batch size " + batch.getItems().length);
 				successCount.getAndAdd(batch.getItems().length);
 			}).onBatchFailure((batch, throwable) -> {
 				throwable.printStackTrace();
@@ -2052,7 +2061,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 	}
 
 	// test flushAsync()
-	@Test
+	@Ignore
 	public void testInserttoDisabledAppServer() throws Exception {
 		System.out.println("In testInserttoDisabledAppServer method");
 
@@ -2100,7 +2109,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 	}
 
 	// ISSUE 588
-	@Test
+	@Ignore
 	public void testRetry() throws Exception {
 		System.out.println("In testRetry method");
 
@@ -2154,7 +2163,7 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 	}
 
 	// ea3
-	@Test
+	@Ignore
 	public void testDisableAppServerDuringInsert() throws Exception {
 		System.out.println("In testDisableAppServerDuringInsert method");
 
@@ -2949,6 +2958,6 @@ public class WriteHostBatcherTest extends BasicJavaClientREST {
 	 	assertTrue("Document properties difference in size value", mHandle3.getProperties().size()==0);
 	 	assertTrue("Document collections difference in size value", mHandle3.getCollections().size()==0);
 		
-		clearDB(port);
+		clearDB(dbClient, dbName);
 	}
 }

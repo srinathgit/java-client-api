@@ -54,7 +54,7 @@ import com.marklogic.client.query.StructuredQueryBuilder;
 
 public class DeleteListenerTest extends BasicJavaClientREST {
 
-  private static String dbName = "DeleteListener";
+  private static String dbName = "data-hub-STAGING";
   private static DataMovementManager dmManager = null;
   private static final String TEST_DIR_PREFIX = "/WriteHostBatcher-testdata/";
 
@@ -84,7 +84,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
     port = getRestAppServerPort();
     
     host = getRestAppServerHostName();
-    hostNames = getHosts();
+    /*hostNames = getHosts();
     createDB(dbName);
     Thread.currentThread().sleep(500L);
   //Ensure db has atleast one forest
@@ -104,9 +104,9 @@ public class DeleteListenerTest extends BasicJavaClientREST {
     if (IsSecurityEnabled()) {
 		enableSecurityOnRESTServer(server, dbName);
 	}
-
+*/
     dbClient = getDatabaseClient(user, password, getConnType());
-    DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
+    //DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
     dmManager = dbClient.newDataMovementManager();
 
     // JacksonHandle
@@ -128,7 +128,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
   }
 
   @AfterClass
-  public static void tearDownAfterClass() throws Exception {
+  public static void tearDownAfterClass() throws Exception {/*
     associateRESTServerWithDB(server, "Documents");
     for (int i = 0; i < forestCount -1; i++) {
       System.out.println(dbName + "-" + (i + 1));
@@ -137,7 +137,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
     }
 
     deleteDB(dbName);
-  }
+  */}
 
   @Before
   public void setUp() throws Exception {
@@ -167,7 +167,7 @@ public class DeleteListenerTest extends BasicJavaClientREST {
 
   @After
   public void tearDown() throws Exception {
-    clearDB(port);
+    clearDB(dbClient, dbName);
   }
 
   @Test
@@ -277,8 +277,8 @@ public class DeleteListenerTest extends BasicJavaClientREST {
   @Test
   public void massDeleteConsistentSnapShot() throws Exception {
     Map<String, String> props = new HashMap<String, String>();
-    props.put("merge-timestamp", "-6000000000");
-    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");
+/*    props.put("merge-timestamp", "-6000000000");
+    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");*/
     Thread.currentThread().sleep(5000L);
 
     QueryBatcher queryBatcher = dmManager.newQueryBatcher(
@@ -297,8 +297,8 @@ public class DeleteListenerTest extends BasicJavaClientREST {
     queryBatcher.awaitCompletion();
     dmManager.stopJob(ticket);
 
-    props.put("merge-timestamp", "0");
-    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");
+   /* props.put("merge-timestamp", "0");
+    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");*/
     // if ( failures2.length() > 0 ) fail(failures2.toString());
     assertEquals(0, dbClient.newServerEval().xquery(query1).eval().next().getNumber().intValue());
   }
@@ -339,8 +339,8 @@ public class DeleteListenerTest extends BasicJavaClientREST {
   public void deleteServerFile() throws Exception {
 
     Map<String, String> props = new HashMap<String, String>();
-    props.put("merge-timestamp", "-6000000000");
-    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");
+    /*props.put("merge-timestamp", "-6000000000");
+    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");*/
     Thread.currentThread().sleep(5000L);
 
     class MyRunnable implements Runnable {
@@ -414,8 +414,8 @@ public class DeleteListenerTest extends BasicJavaClientREST {
 
     }
 
-    props.put("merge-timestamp", "0");
-    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");
+/*    props.put("merge-timestamp", "0");
+    changeProperty(props, "/manage/v2/databases/" + dbName + "/properties");*/
   }
 
   @Test

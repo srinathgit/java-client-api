@@ -72,6 +72,8 @@ import com.marklogic.client.DatabaseClientFactory.Authentication;
 import com.marklogic.client.DatabaseClientFactory.SSLHostnameVerifier;
 import com.marklogic.client.DatabaseClientFactory.SecurityContext;
 import com.marklogic.client.admin.ServerConfigurationManager;
+import com.marklogic.client.eval.EvalResultIterator;
+import com.marklogic.client.eval.ServerEvaluationCall;
 import com.marklogic.client.io.DocumentMetadataHandle;
 import com.marklogic.client.io.DocumentMetadataHandle.Capability;
 
@@ -1035,6 +1037,26 @@ public abstract class ConnectedRESTQA {
 			client.getConnectionManager().shutdown();
 		}
 	}
+	
+	public static void clearDB(DatabaseClient client, String databases) {
+	    ServerEvaluationCall eval = client.newServerEval();
+	    String installer =
+	        "declare variable $databases external;\n" +
+	        "for $database in fn:tokenize($databases, \",\")\n" +
+	        "return\n" +
+	        "  xdmp:eval('\n" +
+	        "    cts:uris() ! xdmp:document-delete(.)\n" +
+	        "  ',\n" +
+	        "  (),\n" +
+	        "  map:entry(\"database\", xdmp:database($database))\n" +
+	        "  )";
+	    eval.addVariable("databases", String.join(",", databases));
+	    EvalResultIterator result = eval.xquery(installer).eval();
+	    if (result.hasNext()) {
+	        logger.error(result.next().getString());
+	    }
+	}
+
 
 	public static void waitForServerRestart() {
 		DefaultHttpClient client = null;

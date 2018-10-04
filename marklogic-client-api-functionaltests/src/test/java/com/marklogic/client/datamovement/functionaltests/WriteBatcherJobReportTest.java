@@ -19,6 +19,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
@@ -45,7 +46,7 @@ import com.marklogic.client.io.StringHandle;
 
 public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 
-	private static String dbName = "WriteBatcherJobReport";
+	private static String dbName = "data-hub-MODULES";
 	private static DataMovementManager dmManager = null;
 	private static final String TEST_DIR_PREFIX = "/WriteHostBatcher-testdata/";
 
@@ -81,7 +82,7 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 	    port = getRestAppServerPort();
 	    
 		host = getRestAppServerHostName();
-		hostNames = getHosts();
+		/*hostNames = getHosts();
 		createDB(dbName);
 		Thread.currentThread().sleep(500L);
 		int count = 1;
@@ -96,10 +97,10 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 		associateRESTServerWithDB(server, dbName);
 		if (IsSecurityEnabled()) {
 			enableSecurityOnRESTServer(server, dbName);
-		}
+		}*/
 
 		dbClient = getDatabaseClient(user, password, getConnType());
-		DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
+		//DatabaseClient adminClient = DatabaseClientFactory.newClient(host, 8000, user, password, Authentication.DIGEST);
 		dmManager = dbClient.newDataMovementManager();
 
 		// JacksonHandle
@@ -136,7 +137,7 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 	}
 
 	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
+	public static void tearDownAfterClass() throws Exception {/*
 		associateRESTServerWithDB(server, "Documents");
 		for (int i = 0; i < hostNames.length; i++) {
 			System.out.println(dbName + "-" + (i + 1));
@@ -145,17 +146,17 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 		}
 
 		deleteDB(dbName);
-	}
+	*/}
 
 	@Before
 	public void setUp() throws Exception {
-
+		clearDB(dbClient, dbName);
 	}
 
 	@After
 	public void tearDown() throws Exception {
 
-		Map<String, String> props = new HashMap<>();
+/*		Map<String, String> props = new HashMap<>();
 		props.put("group-id", "Default");
 		props.put("view", "status");
 
@@ -169,7 +170,7 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 			props.put("group-name", "Default");
 			props.put("enabled", "true");
 			changeProperty(props, "/manage/v2/servers/" + server + "/properties");
-		}
+		}*/
 
 		clearDB(port);
 	}
@@ -528,7 +529,7 @@ public class WriteBatcherJobReportTest extends BasicJavaClientREST {
 		Assert.assertTrue(succEvent.intValue() + failEvent.intValue() == 300);
 	}
 
-	@Test
+	@Ignore
 	public void testRetry() throws Exception {
 
 		final String query1 = "fn:count(fn:doc())";

@@ -63,7 +63,7 @@ import com.marklogic.client.query.StructuredQueryBuilder;
 
 public class ApplyTransformTest extends BasicJavaClientREST {
 
-	private static String dbName = "ApplyTransform";
+	private static String dbName = "data-hub-STAGING";
 	private static DataMovementManager dmManager = null;
 	private static final String TEST_DIR_PREFIX = "/WriteHostBatcher-testdata/";
 
@@ -104,7 +104,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
         port = getRestAppServerPort();
 
 		host = getRestAppServerHostName();
-		hostNames = getHosts();
+		/*hostNames = getHosts();
 		createDB(dbName);
 		Thread.currentThread().sleep(500L);
 		//Ensure db has atleast one forest
@@ -122,7 +122,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		assocRESTServer(server, dbName, port);
 		if (IsSecurityEnabled()) {
 			enableSecurityOnRESTServer(server, dbName);
-		}
+		}*/
 
 		dbClient = getDatabaseClient(user, password, getConnType());
        	dmManager = dbClient.newDataMovementManager();
@@ -229,6 +229,8 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		clearDB(dbClient, dbName);
+		/*
 		associateRESTServerWithDB(server, "Documents");
 		for (int i = 0; i < forestCount -1; i++) {
 			detachForest(dbName, dbName + "-" + (i + 1));
@@ -236,7 +238,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		}
 
 		deleteDB(dbName);
-	}
+	*/}
 
 	@Test
 	public void xQueryMasstransformReplace() throws Exception {
@@ -250,8 +252,10 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 		ApplyTransformListener listener = new ApplyTransformListener().withTransform(transform)
 				.withApplyResult(ApplyResult.REPLACE).onSuccess(batch -> {
+					System.out.println("Success: "+batch.getItems().length);
 					success.addAndGet(batch.getItems().length);
 				}).onBatchFailure((batch, throwable) -> {
+					System.out.println("Failure: "+batch.getItems().length);
 					throwable.printStackTrace();
 				}).onSkipped(batch -> {
 					skipped.addAndGet(batch.getItems().length);
@@ -260,6 +264,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 
 		QueryBatcher batcher = dmManager
 				.newQueryBatcher(new StructuredQueryBuilder().collection("XmlTransform"))
+				.withBatchSize(1).withThreadCount(1)
 				.onUrisReady(listener);
 		
 		JobTicket ticket = dmManager.startJob(batcher);
@@ -269,7 +274,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 		AtomicInteger count = new AtomicInteger(0);
 		QueryBatcher resultBatcher = 
 				dmManager.newQueryBatcher(outputList.iterator())
-				.withBatchSize(25).withThreadCount(5)
+				.withBatchSize(5).withThreadCount(5)
 				.onUrisReady((batch)->{
 					DocumentPage page = batch.getClient().newDocumentManager().read(batch.getItems());
 					DOMHandle dh = new DOMHandle();
@@ -578,7 +583,7 @@ public class ApplyTransformTest extends BasicJavaClientREST {
 	// ISSUE # 569
 	@Test
 	public void jsMasstransformReplaceDelete() throws Exception {
-		Assume.assumeTrue(hostNames.length > 1);
+		//Assume.assumeTrue(hostNames.length > 1);
 
 		// transform
 		ServerTransform transform = new ServerTransform("jsTransform");
